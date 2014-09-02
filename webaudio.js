@@ -98,7 +98,7 @@ WebAudio.prototype.playByUrl = function(url, finishedHandler) {
     }
 }
 
-WebAudio.prototype.playByList = function(playlist, finishedHandler) {
+WebAudio.prototype.playByList = function(playlist, playItemHandler, finishedHandler) {
     // play audio by play list
     var webaudio = this;
     
@@ -108,8 +108,14 @@ WebAudio.prototype.playByList = function(playlist, finishedHandler) {
 	}
 	else if (index < playlist.length) {
 	    var item = playlist[index];
+	    var itemInfo = {
+		src: null,
+		duration: 0
+	    };
 	    if($.isNumeric(item)) {
 		// interval time
+		itemInfo.src = null;
+		itemInfo.duration = item;
 		var now = new Date();
 		webaudio.intervalTimeoutFunction = function() {
 		    webaudio.intervalTimerId = null;
@@ -125,15 +131,23 @@ WebAudio.prototype.playByList = function(playlist, finishedHandler) {
 	    }
 	    else if(item.play !== undefined) {
 		// HTML5 Audio Object
+		itemInfo.src = item.src;
+		itemInfo.duration = item.duration;
 		webaudio.playHtml5Audio(item, function() {
 		    playListItem(index+1);
 		});
 	    }
 	    else {
 		// String (URL)
+		itemInfo.src = item;
+		itemInfo.duration = webaudio.loadedBuffers[item].duration;
 		webaudio.playByUrl(item, function() {
 		    playListItem(index+1);
 		});
+	    }
+
+	    if(playItemHandler) {
+		playItemHandler(itemInfo);
 	    }
 
 	    if(index < playlist.length - 1) {
@@ -147,7 +161,9 @@ WebAudio.prototype.playByList = function(playlist, finishedHandler) {
 	else {
 	    // finished
 	    webaudio.state = WebAudio.STOPPING_STATE;
-	    finishedHandler();
+	    if(finishedHandler) {
+		finishedHandler();
+	    }
 	}
     };
 
@@ -285,11 +301,9 @@ WebAudio.prototype.destroyBufferByUrl = function(url) {
     }
 }
 
-WebAudio.prototype.clearBuffers = function(url) {
+WebAudio.prototype.clearBuffers = function() {
     // destroy all buffers
-    console.log(this);
     this.loadedBuffers = {};
-    console.log(this);
 }
 
 function BufferLoader(context, urlList, callback) {
