@@ -132,7 +132,6 @@ WebAudio.prototype.playByList = function(playlist, playItemHandler, finishedHand
 	    else if(item.play !== undefined) {
 		// HTML5 Audio Object
 		itemInfo.src = item.src;
-		itemInfo.duration = item.duration;
 		webaudio.playHtml5Audio(item, function() {
 		    playListItem(index+1);
 		});
@@ -140,7 +139,6 @@ WebAudio.prototype.playByList = function(playlist, playItemHandler, finishedHand
 	    else {
 		// String (URL)
 		itemInfo.src = item;
-		itemInfo.duration = webaudio.loadedBuffers[item].duration;
 		webaudio.playByUrl(item, function() {
 		    playListItem(index+1);
 		});
@@ -169,22 +167,45 @@ WebAudio.prototype.playByList = function(playlist, playItemHandler, finishedHand
 
     if(this.useWebAudioApi()) {
 	// use Web Audio API
-	playListItem(0);
+	this.loadUrl(playlist[0], function() {
+	    playListItem(0);
+	});
     }
     else {
 	// use HTML5 Audio
-	for(var i=0; i<playlist.length; ++i) {
-	    // preload audio
-	    if(!$.isNumeric(playlist[i])) {
-		var url = playlist[i];
-		var audio = new Audio(url);
-		audio.load();
-		playlist[i] = audio;
-	    }
-	}
 	playListItem(0);
     }
 }
+
+WebAudio.prototype.preloadHtml5AudioPlaylist = function(playlist, progressHandler, finishedHandler) {
+    if(!this.useWebAudioApi()) {
+	// use HTML5 Audio
+	var loadedCount = 0;
+	var totalCount = 0;
+	$.each(playlist, function(index, item) {
+	    // count up audio datas
+	    if(item && !$.isNumeric(item)) {
+		totalCount++;
+	    }
+	});
+	$.each(playlist, function(index, item) {	
+	    if(item && !$.isNumeric(item)) {
+		var audio = new Audio(item);
+		$(audio).on("loadeddata", function() {
+		    loadedCount++;
+		    if(progressHandler) {
+			progressHandler(loadedCount / totalCount);
+		    }
+		    if(loadedCount ==  totalCount && finishedHandler) {
+			finishedHandler(playlist);
+		    }
+		});
+		audio.load();
+		playlist[index] = audio;
+	    }
+	});
+    }
+};
 
 WebAudio.prototype.playHtml5Audio = function(audio, finishedHandler) {
     $(audio).bind("ended", finishedHandler);
@@ -266,7 +287,7 @@ WebAudio.prototype.resume = function() {
 	}
 	else if(this.useWebAudioApi()) {
 	    // Web Audio API
-	    if(this.currentBuffer && this.startOffset) {
+	    if(this.currentBuffer && this.startOffset != undefined) {
 		this.playBuffer(this.currentBuffer,
 				this.playFinishedHandler,
 				this.startOffset);
