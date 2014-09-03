@@ -98,82 +98,91 @@ WebAudio.prototype.playByUrl = function(url, finishedHandler) {
     }
 }
 
+WebAudio.prototype.playListItem = function() {
+    var webaudio = this;
+
+    if(webaudio.currentPlaylistIndex < 0) {
+	throw "Invalid playlist index";
+    }
+    else if (webaudio.currentPlaylistIndex < webaudio.currentPlaylist.length) {
+	var item = this.currentPlaylist[webaudio.currentPlaylistIndex];
+	var itemInfo = {
+	    src: null,
+	    duration: 0
+	};
+	if($.isNumeric(item)) {
+	    // interval time
+	    itemInfo.src = null;
+	    itemInfo.duration = item;
+	    var now = new Date();
+	    webaudio.intervalTimeoutFunction = function() {
+		webaudio.intervalTimerId = null;
+		webaudio.intervalStartTime = null;
+		webaudio.currentIntervalTime = null;
+		webaudio.intervalTimeoutFunction = null;
+		webaudio.currentPlaylistIndex++;
+		webaudio.playListItem();
+	    };
+	    webaudio.currentIntervalTime = item;
+	    webaudio.intervalStartTime = now.getTime();
+	    webaudio.intervalTimerId = setTimeout(webaudio.intervalTimeoutFunction,
+						  item);
+	}
+	else if(item.play !== undefined) {
+	    // HTML5 Audio Object
+	    itemInfo.src = item.src;
+	    webaudio.playHtml5Audio(item, function() {
+		webaudio.currentPlaylistIndex++;
+		webaudio.playListItem();
+	    });
+	}
+	else {
+	    // String (URL)
+	    itemInfo.src = item;
+	    webaudio.playByUrl(item, function() {
+		webaudio.currentPlaylistIndex++;
+		webaudio.playListItem();
+	    });
+	}
+	
+	if(webaudio.playItemHandler) {
+	    webaudio.playItemHandler(itemInfo);
+	}
+	
+	if(webaudio.currentPlaylistIndex < this.currentPlaylist.length - 1) {
+	    var nextItem = this.currentPlaylist[webaudio.currentPlaylistIndex+1];
+	    if(!$.isNumeric(nextItem) && nextItem.play == undefined) {
+		// preload Web Audio API buffer
+		webaudio.loadUrl(nextItem);
+	    }
+	}
+    }
+    else {
+	// finished
+	webaudio.state = WebAudio.STOPPING_STATE;
+	if(webaudio.playlistFinishedHandler) {
+	    webaudio.playlistFinishedHandler();
+	}
+    }
+}
+
 WebAudio.prototype.playByList = function(playlist, playItemHandler, finishedHandler) {
     // play audio by play list
     var webaudio = this;
     
-    var playListItem = function(index) {
-	if(index < 0) {
-	    throw "Invalid playlist index";
-	}
-	else if (index < playlist.length) {
-	    var item = playlist[index];
-	    var itemInfo = {
-		src: null,
-		duration: 0
-	    };
-	    if($.isNumeric(item)) {
-		// interval time
-		itemInfo.src = null;
-		itemInfo.duration = item;
-		var now = new Date();
-		webaudio.intervalTimeoutFunction = function() {
-		    webaudio.intervalTimerId = null;
-		    webaudio.intervalStartTime = null;
-		    webaudio.currentIntervalTime = null;
-		    webaudio.intervalTimeoutFunction = null;
-		    playListItem(index+1);
-		};
-		webaudio.currentIntervalTime = item;
-		webaudio.intervalStartTime = now.getTime();
-		webaudio.intervalTimerId = setTimeout(webaudio.intervalTimeoutFunction,
-						      item);
-	    }
-	    else if(item.play !== undefined) {
-		// HTML5 Audio Object
-		itemInfo.src = item.src;
-		webaudio.playHtml5Audio(item, function() {
-		    playListItem(index+1);
-		});
-	    }
-	    else {
-		// String (URL)
-		itemInfo.src = item;
-		webaudio.playByUrl(item, function() {
-		    playListItem(index+1);
-		});
-	    }
-
-	    if(playItemHandler) {
-		playItemHandler(itemInfo);
-	    }
-
-	    if(index < playlist.length - 1) {
-		var nextItem = playlist[index+1];
-		if(!$.isNumeric(nextItem) && nextItem.play == undefined) {
-		    // preload Web Audio API buffer
-		    webaudio.loadUrl(nextItem);
-		}
-	    }
-	}
-	else {
-	    // finished
-	    webaudio.state = WebAudio.STOPPING_STATE;
-	    if(finishedHandler) {
-		finishedHandler();
-	    }
-	}
-    };
-
+    this.currentPlaylist = playlist;
+    this.currentPlaylistIndex = 0;
+    this.playItemHandler = playItemHandler
+    this.playlistFinishedHandler = finishedHandler
     if(this.useWebAudioApi()) {
 	// use Web Audio API
 	this.loadUrl(playlist[0], function() {
-	    playListItem(0);
+	    webaudio.playListItem();
 	});
     }
     else {
 	// use HTML5 Audio
-	playListItem(0);
+	webaudio.playListItem();
     }
 }
 
@@ -301,6 +310,23 @@ WebAudio.prototype.resume = function() {
 	    }
 	}
     }
+}
+
+WebAudio.prototype.replayCurrentListItem = function() {
+    this.pause();
+    var item = this.currentPlaylist[this.currentPlaylistIndex];
+    while($.isNumeric(item)) {
+	if(this.currentPlaylistIndex > 0) {
+	    this.currentPlaylistIndex--;
+	    item = this.currentPlaylist[this.currentPlaylistIndex];
+	}
+	else {
+	    // プレイリストの先頭→そのまま再生
+	    this.resume();
+	    return;
+	}
+    }
+    this.playListItem();
 }
 
 WebAudio.prototype.isPlaying = function () {
