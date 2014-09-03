@@ -220,7 +220,6 @@ WebAudio.prototype.preloadHtml5AudioPlaylist = function(playlist, progressHandle
 WebAudio.prototype.playHtml5Audio = function(audio, finishedHandler) {
     $(audio).bind("ended", finishedHandler);
     audio.autoplay = false;
-    audio.load();
     audio.play();
     this.currentAudio = audio;
     this.state = WebAudio.PLAYING_STATE;
@@ -291,7 +290,6 @@ WebAudio.prototype.pause = function() {
 WebAudio.prototype.resume = function() {
     if(this.state == WebAudio.PAUSING_STATE) {
 	if(this.currentIntervalTime) {
-	    console.log("resuming interval");
 	    setTimeout(this.intervalTimeoutFunction,
 		       this.currentIntervalTime);
 	}
@@ -375,9 +373,14 @@ WebAudio.prototype.playNextListItem = function() {
 	    this.currentPlaylistIndex++;
 	    item = this.currentPlaylist[this.currentPlaylistIndex];
 	}
-	this.loadUrl(item, function() {
+	if(this.useWebAudioApi()) {
+	    this.loadUrl(item, function() {
+		WebAudio.instance().playListItem();
+	    });
+	}
+	else {
 	    WebAudio.instance().playListItem();
-	});
+	}
     }
 }
 
