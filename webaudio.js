@@ -106,6 +106,7 @@ WebAudio.prototype.playListItem = function() {
     }
     else if (webaudio.currentPlaylistIndex < webaudio.currentPlaylist.length) {
 	var item = this.currentPlaylist[webaudio.currentPlaylistIndex];
+	//console.log(item);
 	var itemInfo = {
 	    src: null,
 	    duration: 0
@@ -313,20 +314,71 @@ WebAudio.prototype.resume = function() {
 }
 
 WebAudio.prototype.replayCurrentListItem = function() {
-    this.pause();
-    var item = this.currentPlaylist[this.currentPlaylistIndex];
-    while($.isNumeric(item)) {
-	if(this.currentPlaylistIndex > 0) {
-	    this.currentPlaylistIndex--;
+    if(this.currentPlaylist) {
+	this.pause();
+	var item = this.currentPlaylist[this.currentPlaylistIndex];
+	while($.isNumeric(item)) {
+	    if(this.currentPlaylistIndex > 0) {
+		this.currentPlaylistIndex--;
+		item = this.currentPlaylist[this.currentPlaylistIndex];
+		this.currentIntervalTime = null;
+	    }
+	    else {
+		// プレイリストの先頭→そのまま再生
+		this.resume();
+		return;
+	    }
+	}
+	this.playListItem();
+    }
+}
+
+WebAudio.prototype.playPrevListItem = function() {
+    if(this.currentPlaylist) {
+	this.pause();
+	this.currentIntervalTime = null
+	this.currentPlaylistIndex -= 2;
+	if(this.currentPlaylistIndex < 0) {
+	    this.currentPlaylistIndex = 0;
+	}
+	var item = this.currentPlaylist[this.currentPlaylistIndex];
+	while($.isNumeric(item)) {
+	    if(this.currentPlaylistIndex > 0) {
+		this.currentPlaylistIndex--;
+		item = this.currentPlaylist[this.currentPlaylistIndex];
+	    }
+	    else {
+		// プレイリストの先頭→そのまま再生
+		this.resume();
+		return;
+	    }
+	}
+	this.playListItem();
+    }
+}
+
+WebAudio.prototype.playNextListItem = function() {
+    if(this.currentPlaylist) {
+	this.pause();
+	this.currentIntervalTime = null;
+	if(this.currentPlaylistIndex >= this.currentPlaylist.length - 1) {
+	    // プレイリストの終端
+	    return;
+	} 
+	this.currentPlaylistIndex++;
+	var item = this.currentPlaylist[this.currentPlaylistIndex];
+	while($.isNumeric(item)) {
+	    if(this.currentPlaylistIndex >= this.currentPlaylist.length - 1) {
+		// プレイリストの終端
+		return;
+	    }
+	    this.currentPlaylistIndex++;
 	    item = this.currentPlaylist[this.currentPlaylistIndex];
 	}
-	else {
-	    // プレイリストの先頭→そのまま再生
-	    this.resume();
-	    return;
-	}
+	this.loadUrl(item, function() {
+	    WebAudio.instance().playListItem();
+	});
     }
-    this.playListItem();
 }
 
 WebAudio.prototype.isPlaying = function () {
