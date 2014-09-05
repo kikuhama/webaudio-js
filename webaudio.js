@@ -106,7 +106,7 @@ WebAudio.prototype.playListItem = function() {
     }
     else if (webaudio.currentPlaylistIndex < webaudio.currentPlaylist.length) {
 	var item = this.currentPlaylist[webaudio.currentPlaylistIndex];
-	//console.log(item);
+	#console.log(item);
 	var itemInfo = {
 	    src: null,
 	    duration: 0
@@ -218,7 +218,12 @@ WebAudio.prototype.preloadHtml5AudioPlaylist = function(playlist, progressHandle
 };
 
 WebAudio.prototype.playHtml5Audio = function(audio, finishedHandler) {
-    $(audio).bind("ended", finishedHandler);
+    $(audio).bind("ended", function(e) {
+	if(finishedHandler) {
+	    finishedHandler();
+	}
+	$(audio).unbind("ended");
+    });
     audio.autoplay = false;
     audio.play();
     this.currentAudio = audio;
@@ -379,6 +384,7 @@ WebAudio.prototype.playNextListItem = function() {
 	    });
 	}
 	else {
+	    $(this.currentAudio).unbind("ended");
 	    WebAudio.instance().playListItem();
 	}
     }
