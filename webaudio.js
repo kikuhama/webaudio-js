@@ -106,7 +106,6 @@ WebAudio.prototype.playListItem = function() {
     }
     else if (webaudio.currentPlaylistIndex < webaudio.currentPlaylist.length) {
 	var item = this.currentPlaylist[webaudio.currentPlaylistIndex];
-	#console.log(item);
 	var itemInfo = {
 	    src: null,
 	    duration: 0
