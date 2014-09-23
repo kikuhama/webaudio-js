@@ -95,9 +95,9 @@ WebAudio.prototype.playByUrl = function(url, finishedHandler) {
     else {
 	// use HTML5 Audio
 	var audio;
-	if(webaudio.currentPlayList) {
-	    for(var i=0; i<webaudio.currentPlayList.length; ++i) {
-		var item = webaudio.currentPlayList[i];
+	if(webaudio.currentPlaylist) {
+	    for(var i=0; i<webaudio.currentPlaylist.length; ++i) {
+		var item = webaudio.currentPlaylist[i];
 		if(item.src && item.src == url) {
 		    audio = item;
 		}
