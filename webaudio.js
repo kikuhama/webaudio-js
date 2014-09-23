@@ -87,13 +87,25 @@ WebAudio.prototype.playByUrl = function(url, finishedHandler) {
 	    this.playBuffer(this.loadedBuffers[url], finishedHandler, 0);
 	}
 	else {
-	    var loader = new BufferLoader(this.audioContext, [url], onLoaded);
-	    loader.load();
+	    this.loadUrl(url, function() {
+		webaudio.playBuffer(webaudio.loadedBuffers[url], finishedHandler, 0);
+	    });
 	}
     }
     else {
 	// use HTML5 Audio
-	var audio = new Audio(url);
+	var audio;
+	if(webaudio.currentPlayList) {
+	    for(var i=0; i<webaudio.currentPlayList.length; ++i) {
+		var item = webaudio.currentPlayList[i];
+		if(item.src && item.src == url) {
+		    audio = item;
+		}
+	    }
+	}
+	if(!audio) {
+	    audio = new Audio(url);
+	}
 	webaudio.playHtml5Audio(audio, finishedHandler);
     }
 }
